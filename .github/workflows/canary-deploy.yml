@@ -27,64 +27,27 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: test-nginx
-          IMAGE_TAG: 4
+          IMAGE_TAG: 5
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
 
-
-  deploy:
-    name: Enviar imagen docker a AWS ECS
-    runs-on: ubuntu-latest
-    needs: create-docker-image
-
-    steps:
-      - name: Configurar Credenciales de AWS
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
-  
-      - name: Actualizar versión en ECS
+      - name: Actualizar definición de tarea
         run: |
-          aws ecs update-service --cluster test-cluster --service test-svc --task-definition test-ecs-task --force-new-deployment
+          IMAGE_URI="${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}"
+          jq '.containerDefinitions[0].image = "$IMAGE_URI"' task-definition.json > updated-task-definition.json
 
-      # - name: Register new task definition revision
-      #   run: |
-      #     aws ecs register-task-definition \
-      #       --family nginx_simple_task \
-      #       --execution-role-arn arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ecsTaskExecutionRole \
-      #       --network-mode awsvpc \
-      #       --requires-compatibilities FARGATE \
-      #       --cpu "256" \
-      #       --memory "512" \
-      #       --container-definitions '[{
-      #           "name": "nginx-container",
-      #           "image": "${{ env.IMAGE_URI }}",
-      #           "portMappings": [
-      #               {
-      #                   "containerPort": 80,
-      #                   "hostPort": 80,
-      #                   "protocol": "tcp"
-      #               }
-      #           ],
-      #           "essential": true,
-      #           "logConfiguration": {
-      #               "logDriver": "awslogs",
-      #               "options": {
-      #                   "awslogs-group": "/ecs/nginx_simple_task",
-      #                   "awslogs-region": "'"${{ secrets.AWS_REGION }}"'",
-      #                   "awslogs-stream-prefix": "ecs"
-      #               }
-      #           }
-      #       }]'
+      
+      - name: Registrar definición de tarea
+        run: |
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://updated-task-definition.json --query "taskDefinition.taskDefinitionArn" --output text)
+          echo "NEW_TASK_DEF_ARN=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
 
-      # - name: Update ECS service to use new task definition
-      #   run: |
-      #     NEW_TASK_DEF_ARN=$(aws ecs list-task-definitions --family-prefix nginx_simple_task --query "taskDefinitionArns[-1]" --output text)
-      #     aws ecs update-service \
-      #       --cluster ${{ secrets.ECS_CLUSTER }} \
-      #       --service ${{ secrets.ECS_SERVICE }} \
-      #       --task-definition $NEW_TASK_DEF_ARN
+      - name: Update ECS service to use new task definition
+        run: |
+          aws ecs update-service \
+            --cluster test-cluster \
+            --service test-svc \
+            --task-definition ${{ env.NEW_TASK_DEF_ARN }}
+        
