@@ -7,7 +7,7 @@
     "memory": "512",
     "containerDefinitions": [
     {
-        "name": "ngnix-container",
+        "name": "nginx-container",
         "image": "PLACEHOLDER_IMAGE_URI",
         "portMappings": [
         {
