@@ -28,7 +28,7 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: test-nginx
-          IMAGE_TAG: 5
+          IMAGE_TAG: 6
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
@@ -48,5 +48,6 @@ jobs:
 
       - name: Actualizar servicio
         run: |
-          aws ecs update-service --cluster test-cluster --service test-svc --task-definition test-ecs-taks --force-new-deployment
+          aws ecs update-service --cluster test-cluster --service test-svc --task-definition test-ecs-taks --force-new-deployment \
+          --deployment-configuration maximumPercent=150,minimumHealthyPercent=100
   
