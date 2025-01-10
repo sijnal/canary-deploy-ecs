@@ -28,25 +28,30 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: test-nginx
-          IMAGE_TAG: 9
+          IMAGE_TAG: 10
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "ECR_REGISTRY=$ECR_REGISTRY" >> $GITHUB_ENV
+          echo "ECR_REPOSITORY=$ECR_REPOSITORY" >> $GITHUB_ENV
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
-
-      - name: Obtener definición de tarea 
+      - name: Actualizar definición de tarea
         run: |
-          aws ecs describe-task-definition \
-            --task-definition test-ecs-task \
-            --query 'taskDefinition' \
-            --output json > current-task-definition.json
-
-      - name: Actualizar defición de tarea
-        run: |
-          IMAGE_URI="${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}" \
-          jq '.containerDefinitions[0].image = "'$IMAGE_URI'"' current-task-definition.json > updated-task-definition.json
-          cat updated-task-definition.json
+          IMAGE_URI="${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}"
+          jq '.containerDefinitions[0].image = "'$IMAGE_URI'"' task-definition.json > updated-task-definition.json
+        
       
       - name: Registrar definición de tarea
         run: |
           aws ecs register-task-definition --cli-input-json file://updated-task-definition.json
+
+      - name: Obtener ARN de la definición de tarea
+        id: get-task-def-arn
+        run: |
+          TASK_DEF_INFO=$(aws ecs describe-task-definition --task-definition test-nginx:latest)
+          echo "TASK_DEF_ARN=$(echo $TASK_DEF_INFO | jq -r '.taskDefinition.taskDefinitionArn')" >> $GITHUB_ENV
+
+      - name: Actualizar servicio
+        run: /
+          aws ecs update-service --cluster test-cluster --service test-svc --task-definition <arn-de-la-definicion-de-tarea> --force-new-deployment
