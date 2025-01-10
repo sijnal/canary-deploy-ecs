@@ -27,7 +27,7 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: test-nginx
-          IMAGE_TAG: 5
+          IMAGE_TAG: 6
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
@@ -36,7 +36,7 @@ jobs:
       - name: Actualizar definición de tarea
         run: |
           IMAGE_URI="${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}"
-          jq '.containerDefinitions[0].image = "$IMAGE_URI"' task-definition.json > updated-task-definition.json
+          jq '.containerDefinitions[0].image = "'$IMAGE_URI'"' task-definition.json > updated-task-definition.json
 
       
       - name: Registrar definición de tarea
