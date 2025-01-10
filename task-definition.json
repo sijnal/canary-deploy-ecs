@@ -1,13 +1,13 @@
 {
-    "family": "test-ecs-task",
-    "executionRoleArn": "arn:aws:iam::905418402570:role/ecsTaskExecutionRole",
+    "family": "test-ecs-taks",
+    "executionRoleArn": "arn:aws:iam::637423264592:role/ecsTaskExecutionRole",
     "networkMode": "awsvpc",
     "requiresCompatibilities": ["FARGATE"],
     "cpu": "256",
     "memory": "512",
     "containerDefinitions": [
     {
-        "name": "ngnix-1",
+        "name": "ngnix-container",
         "image": "PLACEHOLDER_IMAGE_URI",
         "portMappings": [
         {
@@ -21,7 +21,7 @@
         "logConfiguration": {
             "logDriver": "awslogs",
             "options": {
-                "awslogs-group": "/ecs/test-ecs-task",
+                "awslogs-group": "/ecs/test-ecs-taks",
                 "mode": "non-blocking",
                 "awslogs-create-group": "true",
                 "max-buffer-size": "25m",

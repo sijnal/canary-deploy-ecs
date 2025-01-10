@@ -28,7 +28,7 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: test-nginx
-          IMAGE_TAG: 1
+          IMAGE_TAG: 2
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
@@ -49,9 +49,10 @@ jobs:
       - name: Obtener ARN de la definición de tarea
         id: get-task-def-arn
         run: |
-          TASK_DEF_INFO=$(aws ecs describe-task-definition --task-definition test-ecs-task:6)
-          echo "TASK_DEF_ARN=$(echo $TASK_DEF_INFO | jq -r '.taskDefinition.taskDefinitionArn')" >> $GITHUB_ENV
+          TASK_DEF_ARN=$(aws ecs list-task-definitions --family-prefix test-ecs-taks --sort DESC --max-items 1 --query "taskDefinitionArns[0]" --output text)
+          echo "TASK_DEF_ARN=$TASK_DEF_ARN" >> $GITHUB_ENV
 
       - name: Actualizar servicio
-        run: /
-          aws ecs update-service --cluster test-cluster --service test-svc --task-definition <arn-de-la-definicion-de-tarea> --force-new-deployment
+        run: |
+          aws ecs update-service --cluster test-cluster --service test-svc --task-definition ${{ env.TASK_DEF_ARN }} --force-new-deployment
+  
