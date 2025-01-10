@@ -28,7 +28,7 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: test-nginx
-          IMAGE_TAG: 7
+          IMAGE_TAG: 8
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
@@ -49,13 +49,4 @@ jobs:
       
       - name: Registrar definición de tarea
         run: |
-          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://updated-task-definition.json --query "taskDefinition.taskDefinitionArn" --output text)
-          echo "NEW_TASK_DEF_ARN=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
-
-      - name: Update ECS service to use new task definition
-        run: |
-          aws ecs update-service \
-            --cluster test-cluster \
-            --service test-svc \
-            --task-definition ${{ env.NEW_TASK_DEF_ARN }}
-        
+          aws ecs register-task-definition --cli-input-json file://updated-task-definition.json
